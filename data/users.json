@@ -1,6 +1,6 @@
 [
   {
-    "id": "user-seed-1",
+    "id": "user-1794911555929",
     "name": "Priya Sharma",
     "email": "priya.sharma@example.com",
     "age": 27,
@@ -18,20 +18,20 @@
       "Mild PCOS"
     ],
     "targets": {
-      "calories": 1950,
-      "protein": 115,
-      "carbs": 210,
-      "fat": 55,
+      "calories": 1670,
+      "protein": 124,
+      "carbs": 189,
+      "fat": 46,
       "fiber": 30,
-      "sugarLimit": 35,
+      "sugarLimit": 36,
       "sodiumLimit": 2200,
-      "waterMl": 2800
+      "waterMl": 2480
     },
     "points": 150,
-    "currentStreak": 3,
-    "longestStreak": 10,
-    "bmr": 1450,
-    "tdee": 2100
+    "currentStreak": 1,
+    "longestStreak": 1,
+    "bmr": 1368,
+    "tdee": 2120
   },
   {
     "id": "user-seed-2",
