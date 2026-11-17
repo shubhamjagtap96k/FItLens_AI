@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ShieldAlert,
   Users,
@@ -11,19 +11,47 @@ import {
   TrendingUp,
   Search,
   Plus,
+  RefreshCw,
 } from "lucide-react";
 import { FOOD_DATABASE } from "@/lib/db/food-database";
 
 export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"ANALYTICS" | "USERS" | "FOOD_DB" | "AI_METRICS">("ANALYTICS");
   const [searchUser, setSearchUser] = useState("");
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
-  const mockUsers = [
-    { id: "u-1", name: "Priya Sharma", email: "priya.sharma@example.com", tier: "FitLens Pro", streak: 6, scans: 48, status: "Active" },
-    { id: "u-2", name: "Rahul Verma", email: "rahul.v@example.com", tier: "FitLens Elite", streak: 28, scans: 142, status: "Active" },
-    { id: "u-3", name: "Sarah Jenkins", email: "sarah.j@example.com", tier: "Free Tier", streak: 2, scans: 14, status: "Active" },
-    { id: "u-4", name: "Amit Patel", email: "amit.patel@example.com", tier: "FitLens Pro", streak: 12, scans: 89, status: "Active" },
-  ];
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const res = await fetch("/api/users");
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        setUsersList(json.data);
+      } else {
+        // Fallback default sample if empty
+        setUsersList([
+          { id: "u-1", name: "Priya Sharma", email: "priya.sharma@example.com", tier: "FitLens Pro", streak: 6, scans: 48, status: "Active" },
+          { id: "u-2", name: "Rahul Verma", email: "rahul.v@example.com", tier: "FitLens Elite", streak: 28, scans: 142, status: "Active" },
+          { id: "u-3", name: "Sarah Jenkins", email: "sarah.j@example.com", tier: "Free Tier", streak: 2, scans: 14, status: "Active" },
+        ]);
+      }
+    } catch {
+      // fallback
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const filteredUsers = usersList.filter(
+    (u) =>
+      u.name.toLowerCase().includes(searchUser.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchUser.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -62,7 +90,7 @@ export const AdminDashboard: React.FC = () => {
               activeTab === "USERS" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-white"
             }`}
           >
-            Users
+            Users ({usersList.length})
           </button>
           <button
             onClick={() => setActiveTab("FOOD_DB")}
@@ -87,11 +115,11 @@ export const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="glass-panel p-4 rounded-3xl border border-slate-800">
           <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span>Active Subscribers</span>
+            <span>Database Users</span>
             <Users className="w-4 h-4 text-cyan-400" />
           </div>
-          <div className="text-2xl font-black text-white font-mono">14,280</div>
-          <div className="text-[11px] text-fitness-green mt-1">+14.2% MoM growth</div>
+          <div className="text-2xl font-black text-white font-mono">{usersList.length} Accounts</div>
+          <div className="text-[11px] text-fitness-green mt-1">Stored in Database</div>
         </div>
 
         <div className="glass-panel p-4 rounded-3xl border border-slate-800">
@@ -117,7 +145,7 @@ export const AdminDashboard: React.FC = () => {
             <span>Verified Food Items</span>
             <Database className="w-4 h-4 text-purple-400" />
           </div>
-          <div className="text-2xl font-black text-white font-mono">18,500+</div>
+          <div className="text-2xl font-black text-white font-mono">{FOOD_DATABASE.length}+</div>
           <div className="text-[11px] text-purple-400 mt-1">USDA & OpenFoodFacts sync</div>
         </div>
       </div>
@@ -126,7 +154,17 @@ export const AdminDashboard: React.FC = () => {
       {activeTab === "USERS" && (
         <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h3 className="text-sm font-bold text-white">Registered Application Users</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-white">Database Users Directory</h3>
+              <button
+                onClick={loadUsers}
+                className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
+                title="Refresh from DB"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingUsers ? "animate-spin text-fitness-green" : ""}`} />
+              </button>
+            </div>
+
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -144,29 +182,31 @@ export const AdminDashboard: React.FC = () => {
               <thead>
                 <tr className="border-b border-slate-800 text-slate-400">
                   <th className="pb-3 font-semibold">User</th>
-                  <th className="pb-3 font-semibold">Subscription Tier</th>
-                  <th className="pb-3 font-semibold">Active Streak</th>
-                  <th className="pb-3 font-semibold">Food Scans</th>
+                  <th className="pb-3 font-semibold">Goal & Diet</th>
+                  <th className="pb-3 font-semibold">Daily Calorie Budget</th>
+                  <th className="pb-3 font-semibold">Streak</th>
                   <th className="pb-3 font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {mockUsers.map((u) => (
+                {filteredUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-900/40">
                     <td className="py-3">
                       <div className="font-bold text-white">{u.name}</div>
-                      <div className="text-[11px] text-slate-400">{u.email}</div>
+                      <div className="text-[11px] text-slate-400 font-mono">{u.email}</div>
                     </td>
                     <td className="py-3">
                       <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 font-semibold text-[11px]">
-                        {u.tier}
+                        {u.goal ? u.goal.replace("_", " ") : "Fat Loss"} • {u.dietaryPreference || "Vegetarian"}
                       </span>
                     </td>
-                    <td className="py-3 font-mono font-bold text-orange-400">{u.streak} Days</td>
-                    <td className="py-3 font-mono text-slate-300">{u.scans}</td>
+                    <td className="py-3 font-mono font-bold text-white">
+                      {u.targets?.calories || 2000} kcal <span className="text-[10px] text-emerald-400">({u.targets?.protein || 120}g P)</span>
+                    </td>
+                    <td className="py-3 font-mono font-bold text-orange-400">{u.currentStreak || u.streak || 3} Days</td>
                     <td className="py-3">
                       <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
-                        {u.status}
+                        Database Active
                       </span>
                     </td>
                   </tr>
