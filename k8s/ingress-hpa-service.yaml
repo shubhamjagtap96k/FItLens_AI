@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fitlens-ai-service
+  namespace: fitlens-prod
+  labels:
+    app: fitlens-ai
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: fitlens-ai
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fitlens-ai-ingress
+  namespace: fitlens-prod
+  annotations:
+    kubernetes.io/ingress.class: "azure/application-gateway"
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+    - hosts:
+        - app.fitlensai.com
+      secretName: fitlens-tls-cert
+  rules:
+    - host: app.fitlensai.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fitlens-ai-service
+                port:
+                  number: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fitlens-ai-hpa
+  namespace: fitlens-prod
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fitlens-ai-deployment
+  minReplicas: 3
+  maxReplicas: 15
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fitlens-config
+  namespace: fitlens-prod
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  NEXTAUTH_URL: "https://app.fitlensai.com"
+  OPENFOODFACTS_BASE_URL: "https://world.openfoodfacts.org/api/v2"

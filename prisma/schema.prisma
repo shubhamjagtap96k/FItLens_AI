@@ -1,0 +1,421 @@
+// Prisma Schema for FitLens AI
+// Supports PostgreSQL in production and SQLite for local development
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+  DIETITIAN
+}
+
+enum GoalType {
+  WEIGHT_LOSS
+  WEIGHT_GAIN
+  MUSCLE_BUILDING
+  FAT_LOSS
+  HEALTHY_LIFESTYLE
+  BODY_RECOMPOSITION
+}
+
+enum DietaryPreference {
+  STANDARD
+  VEGETARIAN
+  VEGAN
+  JAIN
+  KETO
+  HIGH_PROTEIN
+  LOW_CARB
+  MEDITERRANEAN
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  VERY_ACTIVE
+  EXTRA_ACTIVE
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACKS
+  PRE_WORKOUT
+  POST_WORKOUT
+}
+
+enum WorkoutType {
+  RUNNING
+  WALKING
+  GYM
+  CYCLING
+  SWIMMING
+  YOGA
+  SPORTS
+}
+
+enum DataSource {
+  MANUAL
+  APPLE_HEALTH
+  GOOGLE_FIT
+  FITBIT
+  GARMIN
+  SAMSUNG_HEALTH
+}
+
+enum FastingStatus {
+  ACTIVE
+  COMPLETED
+  BROKEN
+}
+
+enum FastingType {
+  CIRCADIAN_12_12
+  INTERMITTENT_16_8
+  INTERMITTENT_18_6
+  INTERMITTENT_20_4
+  OMAD_23_1
+  CUSTOM
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  name             String
+  passwordHash     String?
+  image            String?
+  role             Role              @default(USER)
+  points           Int               @default(150)
+  currentStreak    Int               @default(5)
+  longestStreak    Int               @default(12)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  profile          Profile?
+  goals            HealthGoal[]
+  mealLogs         MealLog[]
+  workoutLogs      WorkoutLog[]
+  bodyMeasurements BodyMeasurement[]
+  hydrationLogs    HydrationLog[]
+  fastingSessions  FastingSession[]
+  healthReports    HealthReport[]
+  userChallenges   UserChallenge[]
+  userBadges       UserBadge[]
+  notifications    Notification[]
+  chatMessages     ChatMessage[]
+  auditLogs        AuditLog[]
+
+  @@map("users")
+}
+
+model Profile {
+  id                    String            @id @default(uuid())
+  userId                String            @unique
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age                   Int               @default(28)
+  gender                String            @default("female")
+  heightCm              Float             @default(168.0)
+  weightKg              Float             @default(64.5)
+  targetWeightKg        Float             @default(59.0)
+  activityLevel         ActivityLevel     @default(MODERATE)
+  dietaryPreference     DietaryPreference @default(VEGETARIAN)
+  medicalConditions     String            @default("[]") // JSON string of conditions
+  allergies             String            @default("[]") // JSON string of allergies
+  dailyCalorieTarget    Int               @default(2100)
+  dailyProteinTargetG   Int               @default(120)
+  dailyCarbTargetG      Int               @default(220)
+  dailyFatTargetG       Int               @default(65)
+  dailyFiberTargetG     Int               @default(32)
+  dailySugarLimitG      Int               @default(38)
+  dailySodiumLimitMg    Int               @default(2200)
+  dailyWaterTargetMl    Int               @default(3000)
+  bmr                   Float             @default(1520.0)
+  tdee                  Float             @default(2350.0)
+  updatedAt             DateTime          @updatedAt
+
+  @@map("profiles")
+}
+
+model HealthGoal {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goalType       GoalType  @default(FAT_LOSS)
+  targetDate     DateTime?
+  targetCalories Int
+  targetProtein  Int
+  targetCarbs    Int
+  targetFat      Int
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  @@map("health_goals")
+}
+
+model FoodItem {
+  id              String         @id @default(uuid())
+  name            String
+  brand           String?
+  barcode         String?        @unique
+  servingSize     Float          @default(100)
+  servingUnit     String         @default("g")
+  calories        Float
+  protein         Float
+  carbs           Float
+  fat             Float
+  fiber           Float          @default(0)
+  sugar           Float          @default(0)
+  sodium          Float          @default(0) // in mg
+  potassium       Float          @default(0) // in mg
+  vitaminA        Float          @default(0) // % DV
+  vitaminC        Float          @default(0) // % DV
+  calcium         Float          @default(0) // % DV
+  iron            Float          @default(0) // % DV
+  confidenceScore Float          @default(0.95)
+  isIndian        Boolean        @default(false)
+  isPackaged      Boolean        @default(false)
+  isVerified      Boolean        @default(true)
+  imageUrl        String?
+  createdAt       DateTime       @default(now())
+  
+  mealFoodItems   MealFoodItem[]
+
+  @@map("food_items")
+}
+
+model MealLog {
+  id                 String         @id @default(uuid())
+  userId             String
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealType           MealType       @default(LUNCH)
+  loggedAt           DateTime       @default(now())
+  totalCalories      Float
+  totalProtein       Float
+  totalCarbs         Float
+  totalFat           Float
+  totalFiber         Float          @default(0)
+  totalSugar         Float          @default(0)
+  totalSodium        Float          @default(0)
+  aiConfidenceScore  Float?         @default(0.92)
+  imageUrl           String?
+  voiceTranscript    String?
+  aiNutritionFeedback String?
+  
+  items              MealFoodItem[]
+
+  @@map("meal_logs")
+}
+
+model MealFoodItem {
+  id          String   @id @default(uuid())
+  mealLogId   String
+  mealLog     MealLog  @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
+  foodItemId  String?
+  foodItem    FoodItem? @relation(fields: [foodItemId], references: [id])
+  foodName    String
+  quantity    Float    @default(1.0)
+  unit        String   @default("serving")
+  calories    Float
+  protein     Float
+  carbs       Float
+  fat         Float
+  fiber       Float    @default(0)
+  sugar       Float    @default(0)
+  sodium      Float    @default(0)
+
+  @@map("meal_food_items")
+}
+
+model WorkoutLog {
+  id              String            @id @default(uuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutType     WorkoutType       @default(GYM)
+  title           String            @default("Daily Workout")
+  durationMinutes Int               @default(45)
+  distanceKm      Float?
+  caloriesBurned  Float             @default(320)
+  intensity       String            @default("MODERATE")
+  source          DataSource        @default(MANUAL)
+  notes           String?
+  loggedAt        DateTime          @default(now())
+
+  exercises       WorkoutExercise[]
+
+  @@map("workout_logs")
+}
+
+model WorkoutExercise {
+  id           String     @id @default(uuid())
+  workoutLogId String
+  workoutLog   WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+  exerciseName String
+  sets         Int        @default(3)
+  reps         Int        @default(12)
+  weightKg     Float      @default(20)
+
+  @@map("workout_exercises")
+}
+
+model BodyMeasurement {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weightKg           Float
+  bodyFatPercentage  Float?
+  chestCm            Float?
+  waistCm            Float?
+  hipCm              Float?
+  bicepsCm           Float?
+  thighsCm           Float?
+  notes              String?
+  measuredAt         DateTime @default(now())
+
+  @@map("body_measurements")
+}
+
+model HydrationLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amountMl  Int      @default(250)
+  loggedAt  DateTime @default(now())
+
+  @@map("hydration_logs")
+}
+
+model FastingSession {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fastingType FastingType   @default(INTERMITTENT_16_8)
+  targetHours Float         @default(16)
+  startTime   DateTime      @default(now())
+  endTime     DateTime?
+  status      FastingStatus @default(ACTIVE)
+  notes       String?
+
+  @@map("fasting_sessions")
+}
+
+model HealthReport {
+  id                     String   @id @default(uuid())
+  userId                 String
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reportType             String   @default("DAILY") // DAILY or MONTHLY
+  reportDate             DateTime @default(now())
+  healthScore            Int      @default(85)
+  metabolicScore         Int      @default(88)
+  totalCaloriesConsumed  Float
+  totalCaloriesBurned    Float
+  netCalories            Float
+  avgProtein             Float
+  avgCarbs               Float
+  avgFat                 Float
+  workoutConsistency     Int      @default(85) // percentage
+  aiSummary              String
+  aiRecommendations      String   @default("[]") // JSON string of tips
+  createdAt              DateTime @default(now())
+
+  @@map("health_reports")
+}
+
+model Challenge {
+  id           String          @id @default(uuid())
+  title        String
+  description  String
+  category     String          @default("NUTRITION")
+  targetDays   Int             @default(7)
+  rewardPoints Int             @default(50)
+  badgeName    String
+  icon         String          @default("trophy")
+  createdAt    DateTime        @default(now())
+  
+  users        UserChallenge[]
+
+  @@map("challenges")
+}
+
+model UserChallenge {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId  String
+  challenge    Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  progressDays Int       @default(0)
+  status       String    @default("ACTIVE") // ACTIVE, COMPLETED
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  @@map("user_challenges")
+}
+
+model Badge {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String
+  icon        String      @default("award")
+  points      Int         @default(25)
+  category    String      @default("STREAK")
+  
+  users       UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId  String
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt DateTime @default(now())
+
+  @@map("user_badges")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("REMINDER") // REMINDER, COACH_ALERT, CHALLENGE, SYSTEM
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model ChatMessage {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String   @default("user") // user, assistant, system
+  content     String
+  contextData String?  // JSON string
+  createdAt   DateTime @default(now())
+
+  @@map("chat_messages")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
