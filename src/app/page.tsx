@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   UserProfile,
   MealLog,
@@ -105,9 +105,43 @@ export default function Home() {
     return calculateNutritionScore(totals, user.targets);
   }, [totals, user.targets]);
 
+  // Load existing meals & workouts from Database on mount
+  useEffect(() => {
+    async function loadSavedData() {
+      try {
+        const [mealsRes, workoutsRes] = await Promise.all([
+          fetch("/api/meals"),
+          fetch("/api/workouts"),
+        ]);
+        const mealsJson = await mealsRes.json();
+        const workoutsJson = await workoutsRes.json();
+        if (mealsJson.success && Array.isArray(mealsJson.data) && mealsJson.data.length > 0) {
+          setMeals(mealsJson.data);
+        }
+        if (workoutsJson.success && Array.isArray(workoutsJson.data) && workoutsJson.data.length > 0) {
+          setWorkouts(workoutsJson.data);
+        }
+      } catch (err) {
+        console.warn("Initial DB load fallback:", err);
+      }
+    }
+    loadSavedData();
+  }, []);
+
   // Handlers
-  const handleAddMeal = (newMeal: MealLog) => {
+  const handleAddMeal = async (newMeal: MealLog) => {
     setMeals((prev) => [newMeal, ...prev]);
+
+    // Save to Database API asynchronously
+    try {
+      await fetch("/api/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, meal: newMeal }),
+      });
+    } catch (err) {
+      console.warn("Could not save meal to API:", err);
+    }
 
     // Check if new protein level satisfies requirements or updates alert
     const newTotalProtein = totals.protein + newMeal.totalProtein;
@@ -127,8 +161,19 @@ export default function Home() {
     }
   };
 
-  const handleAddWorkout = (newWorkout: WorkoutLog) => {
+  const handleAddWorkout = async (newWorkout: WorkoutLog) => {
     setWorkouts((prev) => [newWorkout, ...prev]);
+
+    // Save to Database API asynchronously
+    try {
+      await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, workout: newWorkout }),
+      });
+    } catch (err) {
+      console.warn("Could not save workout to API:", err);
+    }
   };
 
   const handleAddMeasurement = (newM: BodyMeasurement) => {
