@@ -286,38 +286,114 @@ Navigate to the **Meal Planner & Grocery** tab:
 ## 🚀 Quick Start & Local Setup
 
 ### 1. Prerequisites
-- **Node.js**: `v18.18+` or `v20+` (tested on Node 26)
+- **Node.js**: `v18.18+`, `v20+` or `v22+` (tested on Node 22/26)
 - **npm**: `v9+` or `v10+` (or `pnpm`)
 - **Git**
+- **Neon Cloud PostgreSQL Account** (or any PostgreSQL connection string)
 
-### 2. Clone and Install
+---
+
+### 2. Running the Project (Two Easy Options)
+
+FitLens AI supports running from either the **root workspace directory** or inside the **`FItLens_AI` subfolder**:
+
+#### Option A: Run from the Root Directory (`FitlensAI/`)
+If your terminal is in `C:\Users\shubhjag\AntiProjects\FitlensAI`:
 ```bash
-# Clone the repository
-git clone https://github.com/shubhamjagtap96k/FItLens_AI.git
+# 1. Start the development server directly (delegates automatically)
+npm run dev
+
+# 2. View in browser
+# http://localhost:3000
+```
+
+#### Option B: Run from the App Directory (`FItLens_AI/`)
+If you navigate into `FItLens_AI`:
+```bash
 cd FItLens_AI
 
-# Install production dependencies
-npm install
-```
-
-### 3. Setup Environment Variables
-Copy `.env.example` to `.env.local`:
-```bash
-cp .env.example .env.local
-```
-*(The application runs out of the box with sensible defaults and local AI fallback heuristics even if external API keys are not provided).*
-
-### 4. Run Development Server
-```bash
+# 1. Start development server
 npm run dev
-```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser to explore FitLens AI.
 
-### 5. Production Build
-```bash
-npm run build
-npm start
+# 2. Open in browser
+# http://localhost:3000
 ```
+
+---
+
+### 3. Online Cloud Database Setup (Neon PostgreSQL)
+
+FitLens AI is fully wired to an online **Neon PostgreSQL** serverless database for persistent day-to-day logging of meals, workouts, users, and health metrics.
+
+#### Step 3.1: Configure Environment Variables
+Ensure `.env.local` and `.env` in `FItLens_AI` contain your live Neon PostgreSQL connection string:
+```env
+DATABASE_URL="postgresql://neondb_owner:npg_ACOeEz1obHv8@ep-silent-dew-bdwj4way-pooler.c-8.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+```
+
+#### Step 3.2: Sync Schema to Neon Database
+Push the relational Prisma schema to create all 18+ tables in Neon:
+```bash
+npm run db:push
+# Or: npx prisma db push
+```
+
+#### Step 3.3: Seed Users & Goals into Neon
+Populate initial user profiles (*Priya Sharma*, *Rahul Verma*, *Ananya Mehta*) with custom macro targets, dietary preferences, and fitness goals:
+```bash
+npm run seed
+# Or: node scripts/seed-users.js
+```
+
+#### Step 3.4: Verify Database Connectivity & Live Read/Write
+Run the automated verification script to confirm real-time queries and insertions into your Neon cloud database:
+```bash
+npm run test:db
+# Or: node scripts/test-neon-db.js
+```
+Expected output:
+```
+🔍 Testing Live Neon PostgreSQL Connection...
+✅ Successfully queried Neon DB! Found 3 users:
+   - Priya Sharma (priya.sharma@example.com) | Goal: FAT_LOSS
+   - Rahul Verma (rahul.verma@example.com) | Goal: MUSCLE_BUILDING
+   - Ananya Mehta (ananya.mehta@example.com) | Goal: BODY_RECOMPOSITION
+✅ Successfully created MealLog in Neon DB!
+✅ Successfully created WorkoutLog in Neon DB!
+🎉 Verification Complete! All data is actively streaming to Neon PostgreSQL!
+```
+
+---
+
+### 4. Visualizing & Managing Your Live Data
+
+#### Option 1: Prisma Studio (Interactive Local GUI)
+To browse, filter, edit, or delete live rows in your Neon database via a clean web GUI:
+```bash
+npm run studio
+# Or: npx prisma studio
+```
+Then visit **[http://localhost:5555](http://localhost:5555)** in your browser.
+
+#### Option 2: Neon Cloud Console
+1. Log in at [https://console.neon.tech](https://console.neon.tech).
+2. Open your project **`ep-silent-dew-bdwj4way`**.
+3. Click **Tables** on the left menu to view live records for `users`, `meal_logs`, `meal_food_items`, `workout_logs`, `workout_exercises`, and `body_measurements`.
+
+---
+
+### 5. Available NPM Scripts
+
+| Script | Command | Purpose |
+| :--- | :--- | :--- |
+| `npm run dev` | `next dev` | Starts local Next.js dev server at `http://localhost:3000` |
+| `npm run build` | `next build` | Compiles production-optimized client & API bundles |
+| `npm run start` | `next start` | Runs production server |
+| `npm run db:push` | `prisma db push` | Pushes Prisma schema changes to Neon cloud database |
+| `npm run seed` | `node scripts/seed-users.js` | Seeds demo profiles and macro targets into Neon DB |
+| `npm run test:db` | `node scripts/test-neon-db.js` | Runs end-to-end read/write test against Neon PostgreSQL |
+| `npm run studio` | `prisma studio` | Opens Prisma Studio visual database editor at port 5555 |
+| `npm run lint` | `next lint` | Runs ESLint type and syntax validation |
 
 ---
 
@@ -382,6 +458,12 @@ kubectl rollout status deployment/fitlens-ai-deployment -n fitlens-prod
 
 | Method | Endpoint | Description | Payload / Query |
 |---|---|---|---|
+| `GET` | `/api/meals` | Fetch logged meals from Neon DB | `?userId=<id>&limit=20` |
+| `POST` | `/api/meals` | Log meal with items & macros to Neon DB | `{ "mealType": "LUNCH", "totalCalories": 550, "items": [...] }` |
+| `GET` | `/api/workouts` | Fetch logged workouts from Neon DB | `?userId=<id>&limit=20` |
+| `POST` | `/api/workouts` | Log workout & exercises to Neon DB | `{ "type": "GYM", "durationMinutes": 45, "exercises": [...] }` |
+| `GET` | `/api/users` | List all registered user profiles | None |
+| `POST` | `/api/users` | Create or update user profile & goals | `{ "name": "...", "email": "...", "targets": {...} }` |
 | `POST` | `/api/food/scan` | Analyze food image with AI vision | `{ "image": "data:image/jpeg;base64,...", "mealType": "LUNCH" }` |
 | `GET` | `/api/food/search` | Search verified food database | `?q=paneer&category=Indian` |
 | `GET` | `/api/food/barcode` | Lookup UPC barcode (Local + OpenFoodFacts) | `?barcode=748927028669` |

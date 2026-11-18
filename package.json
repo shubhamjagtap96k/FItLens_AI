@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "studio": "prisma studio",
+    "seed": "node scripts/seed-users.js",
+    "test:db": "node scripts/test-neon-db.js"
   },
   "dependencies": {
     "@prisma/client": "^6.0.1",
