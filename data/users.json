@@ -94,5 +94,39 @@
     "longestStreak": 14,
     "bmr": 1650,
     "tdee": 2500
+  },
+  {
+    "id": "user-1794980680099",
+    "name": "Shubham Jagtap",
+    "email": "shubham@capgemini.com",
+    "age": 25,
+    "gender": "male",
+    "heightCm": 182,
+    "weightKg": 83,
+    "targetWeightKg": 79,
+    "activityLevel": "MODERATE",
+    "goal": "FAT_LOSS",
+    "dietaryPreference": "VEGETARIAN",
+    "allergies": [
+      "Peanuts"
+    ],
+    "medicalConditions": [
+      "Mild PCOS"
+    ],
+    "targets": {
+      "calories": 2414,
+      "protein": 166,
+      "carbs": 287,
+      "fat": 67,
+      "fiber": 30,
+      "sugarLimit": 36,
+      "sodiumLimit": 2200,
+      "waterMl": 3320
+    },
+    "points": 150,
+    "currentStreak": 1,
+    "longestStreak": 1,
+    "bmr": 1848,
+    "tdee": 2864
   }
 ]
